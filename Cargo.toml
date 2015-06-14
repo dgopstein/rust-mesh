@@ -4,10 +4,13 @@ version = "0.1.0"
 authors = ["Dan Gopstein <dan@gopstein.com>"]
 
 [dependencies]
-glium  = "*"
-glutin = "*"
+#libc   = "*"
+gl     = "*"
+glfw   = "*"
+#glium  = "*"
+#glutin = "*"
 
 [dependencies.assimp]
-#path = "/Users/dgopstein/assimp_rs"
-version = "0.1.4"
-git = "file:/Users/dgopstein/assimp_rs"
+path = "/Users/dgopstein/assimp_rs"
+#version = "0.1.4"
+#git = "file:/Users/dgopstein/assimp_rs"
