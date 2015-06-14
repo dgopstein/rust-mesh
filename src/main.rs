@@ -22,7 +22,7 @@ fn read_scene_from_args() {
 
 fn main() {
   let ai_scene = read_scene_from_args();
-  glfw_main();
+  glfw_main(||{octahedron(1)});
 }
 
 
@@ -40,29 +40,32 @@ fn octahedron(length: f32) {
         [  0.0,   0.0,     length]];
 
 
-    // glDisable(GL_LIGHTING);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    //
-    // glBegin(GL_TRIANGLES);
-    // glVertex3dv(p0.data()); glVertex3dv(p1.data()); glVertex3dv(p2.data());
-    // glVertex3dv(p0.data()); glVertex3dv(p2.data()); glVertex3dv(p3.data());
-    // glVertex3dv(p0.data()); glVertex3dv(p3.data()); glVertex3dv(p4.data());
-    // glVertex3dv(p0.data()); glVertex3dv(p4.data()); glVertex3dv(p1.data());
-    //
-    // glVertex3dv(p5.data()); glVertex3dv(p2.data()); glVertex3dv(p1.data());
-    // glVertex3dv(p5.data()); glVertex3dv(p3.data()); glVertex3dv(p2.data());
-    // glVertex3dv(p5.data()); glVertex3dv(p4.data()); glVertex3dv(p3.data());
-    // glVertex3dv(p5.data()); glVertex3dv(p1.data()); glVertex3dv(p4.data());
-    // glEnd();
-    //
-    // glEnable(GL_LIGHTING);
+    gl::Disable(GL_LIGHTING);
+    gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    gl::Begin(GL_TRIANGLES);
+    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p1.data()); gl::Vertex3dv(p2.data());
+    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p2.data()); gl::Vertex3dv(p3.data());
+    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p3.data()); gl::Vertex3dv(p4.data());
+    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p4.data()); gl::Vertex3dv(p1.data());
+
+    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p2.data()); gl::Vertex3dv(p1.data());
+    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p3.data()); gl::Vertex3dv(p2.data());
+    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p4.data()); gl::Vertex3dv(p3.data());
+    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p1.data()); gl::Vertex3dv(p4.data());
+    gl::End();
+
+    gl::Enable(GL_LIGHTING);
 }
 
+extern crate gl;
 extern crate glfw;
 
 use glfw::{Action, Context, Key};
+use gl::types::*;
 
-fn glfw_main() {
+fn glfw_main<F, A>(do_stuff: F)
+        where F : FnOnce() -> A {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     let (mut window, events) = glfw.create_window(300, 300, "Hello this is window", glfw::WindowMode::Windowed)
@@ -70,6 +73,10 @@ fn glfw_main() {
 
     window.set_key_polling(true);
     window.make_current();
+
+    gl::load_with(|s| window.get_proc_address(s));
+
+    do_stuff();
 
     while !window.should_close() {
         glfw.poll_events();
