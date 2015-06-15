@@ -5,9 +5,9 @@ authors = ["Dan Gopstein <dan@gopstein.com>"]
 
 [dependencies]
 #libc   = "*"
-gl     = "*"
-glfw   = "*"
-#glium  = "*"
+#gl     = "*"
+#glfw   = "*"
+glium  = "*"
 #glutin = "*"
 
 [dependencies.assimp]

@@ -22,7 +22,7 @@ fn read_scene_from_args() {
 
 fn main() {
   let ai_scene = read_scene_from_args();
-  glfw_main(||{octahedron(1)});
+  open_window();
 }
 
 
@@ -31,66 +31,109 @@ fn octahedron(length: f32) {
     let top_length = ratio * length;
     let thel: f32 = (2.0f32).sqrt() * top_length / 2.0;
 
-    let verticies = [
+    let vertices = [
         [  0.0,   0.0,        0.0],
         [-thel,  thel, top_length],
         [ thel,  thel, top_length],
         [ thel, -thel, top_length],
         [-thel, -thel, top_length],
-        [  0.0,   0.0,     length]];
+        [  0.0,   0.0,     length]
+      ];
 
 
-    gl::Disable(GL_LIGHTING);
-    gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    let triangle_indices = [
+            0usize, 1, 2,
+            0, 2, 3,
+            0, 3, 4,
+            0, 4, 1,
 
-    gl::Begin(GL_TRIANGLES);
-    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p1.data()); gl::Vertex3dv(p2.data());
-    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p2.data()); gl::Vertex3dv(p3.data());
-    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p3.data()); gl::Vertex3dv(p4.data());
-    gl::Vertex3dv(p0.data()); gl::Vertex3dv(p4.data()); gl::Vertex3dv(p1.data());
+            5, 2, 1,
+            5, 3, 2,
+            5, 4, 3,
+            5, 1, 4
+        ];
 
-    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p2.data()); gl::Vertex3dv(p1.data());
-    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p3.data()); gl::Vertex3dv(p2.data());
-    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p4.data()); gl::Vertex3dv(p3.data());
-    gl::Vertex3dv(p5.data()); gl::Vertex3dv(p1.data()); gl::Vertex3dv(p4.data());
-    gl::End();
-
-    gl::Enable(GL_LIGHTING);
+    let triangles =
+        triangle_indices.iter().flat_map( |idx| {
+            let maybe_vert = vertices.get(*idx);
+            let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1]]} );
+            vert
+        }).collect::<Vec<_>>();
 }
 
-extern crate gl;
-extern crate glfw;
+#[macro_use]
+extern crate glium;
 
-use glfw::{Action, Context, Key};
-use gl::types::*;
+#[derive(Copy, Clone)]
+ struct Vertex {
+   position: [f32; 2],
+ }
 
-fn glfw_main<F, A>(do_stuff: F)
-        where F : FnOnce() -> A {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+fn open_window() {
+  use glium::{DisplayBuild, Surface};
+  let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
-    let (mut window, events) = glfw.create_window(300, 300, "Hello this is window", glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window.");
+  implement_vertex!(Vertex, position);
 
-    window.set_key_polling(true);
-    window.make_current();
+  let vertex1 = Vertex { position: [-0.5, -0.5] };
+  let vertex2 = Vertex { position: [ 0.0,  0.5] };
+  let vertex3 = Vertex { position: [ 0.5, -0.25] };
+  let shape = vec![vertex1, vertex2, vertex3];
 
-    gl::load_with(|s| window.get_proc_address(s));
+  let vertex_buffer = glium::VertexBuffer::new(&display, shape);
+  let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    do_stuff();
+  let vertex_shader_src = r#"
+    #version 140
 
-    while !window.should_close() {
-        glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&events) {
-            handle_window_event(&mut window, event);
-        }
+    in vec2 position;
+
+    uniform mat4 matrix;
+
+    void main() {
+        gl_Position = matrix * vec4(position, 0.0, 1.0);
+      }
+  "#;
+
+  let fragment_shader_src = r#"
+    #version 140
+
+    out vec4 color;
+
+    void main() {
+      color = vec4(1.0, 0.0, 0.0, 1.0);
     }
-}
+  "#;
 
-fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
-    match event {
-        glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-            window.set_should_close(true)
-        }
-        _ => {}
+  let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+
+  let mut t = -0.5;
+
+  loop {
+    // we update `t`
+    t += 0.0002;
+    if t > 0.5 {
+      t = -0.5;
     }
+
+    let mut target = display.draw();
+    target.clear_color(0.0, 0.0, 1.0, 1.0);
+
+    let uniforms = uniform! {
+matrix: [
+          [1.0, 0.0, 0.0, 0.0],
+          [0.0, 1.0, 0.0, 0.0],
+          [0.0, 0.0, 1.0, 0.0],
+          [ t , 0.0, 0.0, 1.0],
+          ]
+    };
+
+    target.draw(&vertex_buffer, &indices, &program, &uniforms,
+        &Default::default()).unwrap();
+    target.finish();
+
+    if display.is_closed() {
+      break;
+    }
+  }
 }
