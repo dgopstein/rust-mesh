@@ -7,10 +7,13 @@ authors = ["Dan Gopstein <dan@gopstein.com>"]
 #libc   = "*"
 #gl     = "*"
 #glfw   = "*"
-glium  = "*"
+#glium  = "*"
 #glutin = "*"
 
-[dependencies.assimp]
-path = "/Users/dgopstein/assimp_rs"
+[dependencies.glium]
+path = "/Users/dgopstein/glium"
+
+#[dependencies.assimp]
+#path = "/Users/dgopstein/assimp_rs"
 #version = "0.1.4"
 #git = "file:/Users/dgopstein/assimp_rs"
