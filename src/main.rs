@@ -42,7 +42,7 @@ fn octahedron(length: f32) {
 
 
     let triangle_indices = [
-            0usize, 1, 2,
+            0, 1, 2,
             0, 2, 3,
             0, 3, 4,
             0, 4, 1,
@@ -50,7 +50,7 @@ fn octahedron(length: f32) {
             5, 2, 1,
             5, 3, 2,
             5, 4, 3,
-            5, 1, 4
+            5, 1, 4usize
         ];
 
     let triangles =
