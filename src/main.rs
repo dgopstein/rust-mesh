@@ -1,9 +1,16 @@
+#![feature(collections)]
+
 extern crate assimp;
 
 use std::env;
-mod glium_mod;
-#[macro_use]
-extern crate glium;
+
+mod gl_mod;
+extern crate gl;
+extern crate glfw;
+
+//#[macro_use]
+//extern crate glium;
+//mod glium_mod;
 
 fn read_scene_from_args() {
   let print_usage_and_die = || {
@@ -25,5 +32,5 @@ fn read_scene_from_args() {
 
 fn main() {
   let ai_scene = read_scene_from_args();
-  glium_mod::open_window();
+  gl_mod::open_window();
 }
