@@ -178,14 +178,7 @@ pub fn open_window() {
     let mut vao = 0;
     let mut vbo = 0;
 
-    let oct = octahedron(0.5);
-
-    println!("oct: {:?}", oct);
-
-    //oct.clone_from_slice(&VERTEX_DATA);
-    VERTEX_DATA.clone_from_slice(&oct);
-
-    println!("VERTEX_DATA: {:?}", DebugArray{data:VERTEX_DATA});
+    VERTEX_DATA.clone_from_slice(&octahedron(5.0));
 
     unsafe {
         // Create Vertex Array Object
