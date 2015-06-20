@@ -1,4 +1,9 @@
-use glium;
+// mod support;
+// {
+//     fn load() {
+//         "load"
+//     }
+// }
 
 fn octahedron(length: f32) -> Vec<Vertex> {
     let ratio = 0.1;
@@ -42,9 +47,12 @@ fn octahedron(length: f32) -> Vec<Vertex> {
    position: [f32; 2],
  }
 
+#[cfg(feature = "window")]
 pub fn open_window() {
+  use glium;
   use glium::{DisplayBuild, Surface};
   let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
+  //let window = display.get_context().backend;
 
   implement_vertex!(Vertex, position);
 
@@ -83,7 +91,7 @@ pub fn open_window() {
 
   let mut t = -0.5;
 
-  loop {
+  //loop {
     // we update `t`
     t += 0.0002;
     if t > 0.5 {
@@ -106,8 +114,11 @@ pub fn open_window() {
         &Default::default()).unwrap();
     target.finish();
 
-    if display.is_closed() {
-      break;
+    for event in display.wait_events() {
+      match event {
+          glium::glutin::Event::Closed => { break; }
+          glium::glutin::Event::MouseMoved((x, y)) => { println!("Mouse: ({}, {})", x, y); }
+          event => println!("Event: {:?}", event)
+      }
     }
-  }
 }
