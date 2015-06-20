@@ -1,10 +1,3 @@
-// mod support;
-// {
-//     fn load() {
-//         "load"
-//     }
-// }
-
 fn octahedron(length: f32) -> Vec<Vertex> {
     let ratio = 0.1;
     let top_length = ratio * length;
@@ -52,14 +45,9 @@ pub fn open_window() {
   use glium;
   use glium::{DisplayBuild, Surface};
   let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
-  //let window = display.get_context().backend;
 
   implement_vertex!(Vertex, position);
 
-  // let vertex1 = Vertex { position: [-0.5, -0.5] };
-  // let vertex2 = Vertex { position: [ 0.0,  0.5] };
-  // let vertex3 = Vertex { position: [ 0.5, -0.25] };
-  // let shape = vec![vertex1, vertex2, vertex3];
   let shape = octahedron(0.5);
 
   let vertex_buffer = glium::VertexBuffer::new(&display, shape);
@@ -93,32 +81,36 @@ pub fn open_window() {
 
   //loop {
     // we update `t`
-    t += 0.0002;
-    if t > 0.5 {
-      t = -0.5;
-    }
 
-    let mut target = display.draw();
-    target.clear_color(0.0, 0.0, 1.0, 1.0);
+    let draw_scene = |x: f32, y: f32| {
+        let mut target = display.draw();
+        target.clear_color(0.0, 0.0, 1.0, 1.0);
 
-    let uniforms = uniform! {
-        matrix: [
-          [1.0, 0.0, 0.0, 0.0],
-          [0.0, 1.0, 0.0, 0.0],
-          [0.0, 0.0, 1.0, 0.0],
-          [ t , t, 0.0, 1.0],
-          ]
+        let uniforms = uniform! {
+            matrix: [
+              [1.0, 0.0, 0.0, 0.0],
+              [0.0, 1.0, 0.0, 0.0],
+              [0.0, 0.0, 1.0, 0.0],
+              [ x , y, 0.0, 1.0],
+              ]
+        };
+
+        target.draw(&vertex_buffer, &indices, &program, &uniforms,
+            &Default::default()).unwrap();
+        target.finish();
     };
 
-    target.draw(&vertex_buffer, &indices, &program, &uniforms,
-        &Default::default()).unwrap();
-    target.finish();
-
     for event in display.wait_events() {
-      match event {
-          glium::glutin::Event::Closed => { break; }
-          glium::glutin::Event::MouseMoved((x, y)) => { println!("Mouse: ({}, {})", x, y); }
+        match event {
+          glium::glutin::Event::Closed => {
+              println!("Closing: {:?}", event);
+              break;
+          }
+          glium::glutin::Event::MouseMoved((x, y)) => {
+              println!("Mouse: ({}, {})", x, y);
+              draw_scene((x as f32)/800.0, (y as f32)/600.0);
+          }
           event => println!("Event: {:?}", event)
-      }
+        }
     }
 }
