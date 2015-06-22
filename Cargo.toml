@@ -10,6 +10,7 @@ libc   = "*"
 glium  = "*"
 glutin = "*"
 gl_common = "*"
+nalgebra = "*"
 
 [dependencies.assimp]
 path = "/Users/dgopstein/assimp_rs"

@@ -11,6 +11,7 @@ use std::env;
 #[macro_use]
 extern crate glium;
 extern crate glutin;
+extern crate nalgebra;
 
 mod glium_mod;
 

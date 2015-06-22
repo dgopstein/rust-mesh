@@ -28,7 +28,7 @@ fn octahedron(length: f32) -> Vec<Vertex> {
     let triangles =
         triangle_indices.iter().flat_map( |idx| {
             let maybe_vert = vertices.get(*idx);
-            let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1]]} );
+            let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1], v[2]]} );
             vert
         }).collect::<Vec<_>>();
 
@@ -37,8 +37,11 @@ fn octahedron(length: f32) -> Vec<Vertex> {
 
 #[derive(Copy, Clone)]
 struct Vertex {
-    position: [f32; 2],
+    position: [f32; 3],
 }
+
+use nalgebra as na;
+use nalgebra::{Mat4, Rot4, Vec4};
 
 #[cfg(feature = "window")]
 pub fn open_window() {
@@ -56,12 +59,12 @@ pub fn open_window() {
     let vertex_shader_src = r#"
         #version 140
 
-        in vec2 position;
+        in vec3 position;
 
         uniform mat4 matrix;
 
         void main() {
-            gl_Position = matrix * vec4(position, 0.0, 1.0);
+            gl_Position = matrix * vec4(position, 1.0);
         }
     "#;
 
@@ -77,7 +80,7 @@ pub fn open_window() {
 
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
-    let draw_scene = |x: f32, y: f32| {
+    let draw_scene = |(x, y): (f32, f32)| {
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
 
@@ -86,9 +89,17 @@ pub fn open_window() {
               [1.0, 0.0, 0.0, 0.0],
               [0.0, 1.0, 0.0, 0.0],
               [0.0, 0.0, 1.0, 0.0],
-              [ x , y, 0.0, 1.0],
+              [0.0 , 0.0, 0.0, 1.0],
               ]
         };
+
+        let iso = na::Iso3::new_with_rotmat(
+                    na::Vec3::new(x, y, 0.0),
+                    na::Rot3::new(na::Vec3::new(0f32, 0.0, 0.0)));
+
+        let homo = na::to_homogeneous(&iso);
+
+        let uniforms = uniform! { matrix: *homo.as_array() };
 
         target.draw(&vertex_buffer, &indices, &program, &uniforms,
             &Default::default()).unwrap();
@@ -103,9 +114,21 @@ pub fn open_window() {
             }
             glium::glutin::Event::MouseMoved((x, y)) => {
                 println!("Mouse: ({}, {})", x, y);
-                draw_scene((x as f32)/800.0, (y as f32)/600.0);
+                let size = display.get_window().and_then( |win|
+                    win.get_inner_size()).unwrap_or((2880, 1800));
+                println!("size: {:?}", size);
+                let scaled_mouse = scaled_mouse_position(size, (x, y));
+                println!("scaled_mouse: {:?}", scaled_mouse);
+                draw_scene(scaled_mouse);
             }
             event => println!("Event: {:?}", event)
         }
     }
+}
+
+
+
+fn scaled_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> (f32, f32) {
+    let (w, h, x, y) = (wi as f32, hi as f32, xi as f32, yi as f32);
+    ((x-w/2.0)/(w/2.0), -(y-h/2.0)/(h/2.0))
 }
