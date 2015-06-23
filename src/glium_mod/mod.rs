@@ -47,6 +47,7 @@ use nalgebra::{Mat4, Iso3, Rot3, Vec3};
 pub fn open_window() {
     use glium;
     use glium::{DisplayBuild, Surface};
+    use glium::glutin::{Event, ElementState, MouseButton};
     let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
     implement_vertex!(Vertex, position);
@@ -80,7 +81,8 @@ pub fn open_window() {
 
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
-    let draw_scene = |(x, y): (f32, f32)| {
+    let draw_scene = |window_state: &WindowState, last_window_state: &WindowState| {
+        let (x, y) = window_state.scaled_mouse_position;
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
 
@@ -97,29 +99,51 @@ pub fn open_window() {
         target.finish();
     };
 
+    let last_window_state = WindowState {
+        scaled_mouse_position: (1337.0, 1337.0),
+        last_scaled_mouse_position: (1338.0, 1338.0),
+        is_left_drag: false
+    };
     for event in display.wait_events() {
+        let mut window_state = last_window_state.clone();
+
         match event {
-            glium::glutin::Event::Closed => {
+            Event::Closed => {
                 println!("Closing: {:?}", event);
                 break;
             }
-            glium::glutin::Event::MouseMoved((x, y)) => {
+            Event::MouseMoved((x, y)) => {
                 //println!("Mouse: ({}, {})", x, y);
                 let size = display.get_window().and_then( |win|
                     win.get_inner_size()).unwrap_or((2880, 1800));
-                let scaled_mouse = scaled_mouse_position(size, (x, y));
+                let scaled_mouse = scale_mouse_position(size, (x, y));
                 //println!("scaled_mouse: {:?}", scaled_mouse);
-                draw_scene(scaled_mouse);
+                window_state.scaled_mouse_position = scaled_mouse;
             }
-            //event => println!("Event: {:?}", event)
-            _ => {}
+            Event::MouseInput(action, button) => {
+                match (action, button) {
+                    (ElementState::Pressed,  MouseButton::Left) => { window_state.is_left_drag = true; }
+                    (ElementState::Released, MouseButton::Left) => { window_state.is_left_drag = false; }
+                    _ => {}
+                }
+            }
+            event => println!("Event: {:?}", event)
+            //_ => {}
         }
+
+        draw_scene(&window_state, &last_window_state);
     }
 }
 
+#[derive(Clone)]
+struct WindowState {
+    scaled_mouse_position: (f32, f32),
+    last_scaled_mouse_position: (f32, f32),
+    is_left_drag: bool
+}
 
 
-fn scaled_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> (f32, f32) {
+fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> (f32, f32) {
     let (w, h, x, y) = (wi as f32, hi as f32, xi as f32, yi as f32);
     (x/(w*2.0) - 1.0, -y/(h*2.0))
 }
