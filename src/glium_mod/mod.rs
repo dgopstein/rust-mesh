@@ -41,7 +41,7 @@ struct Vertex {
 }
 
 use nalgebra as na;
-use nalgebra::{Mat4, Rot4, Vec4};
+use nalgebra::{Mat4, Iso3, Rot3, Vec3};
 
 #[cfg(feature = "window")]
 pub fn open_window() {
@@ -84,20 +84,11 @@ pub fn open_window() {
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
 
-        let uniforms = uniform! {
-            matrix: [
-              [1.0, 0.0, 0.0, 0.0],
-              [0.0, 1.0, 0.0, 0.0],
-              [0.0, 0.0, 1.0, 0.0],
-              [0.0 , 0.0, 0.0, 1.0],
-              ]
-        };
+        let iso = Iso3::new_with_rotmat(
+                    Vec3::new(x, y, 0.0),
+                    Rot3::new(Vec3::new(0f32, 0.0, 0.0)));
 
-        let iso = na::Iso3::new_with_rotmat(
-                    na::Vec3::new(x, y, 0.0),
-                    na::Rot3::new(na::Vec3::new(0f32, 0.0, 0.0)));
-
-        let homo = na::to_homogeneous(&iso);
+        let homo: Mat4<_> = na::to_homogeneous(&iso);
 
         let uniforms = uniform! { matrix: *homo.as_array() };
 
