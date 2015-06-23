@@ -104,15 +104,15 @@ pub fn open_window() {
                 break;
             }
             glium::glutin::Event::MouseMoved((x, y)) => {
-                println!("Mouse: ({}, {})", x, y);
+                //println!("Mouse: ({}, {})", x, y);
                 let size = display.get_window().and_then( |win|
                     win.get_inner_size()).unwrap_or((2880, 1800));
-                println!("size: {:?}", size);
                 let scaled_mouse = scaled_mouse_position(size, (x, y));
-                println!("scaled_mouse: {:?}", scaled_mouse);
+                //println!("scaled_mouse: {:?}", scaled_mouse);
                 draw_scene(scaled_mouse);
             }
-            event => println!("Event: {:?}", event)
+            //event => println!("Event: {:?}", event)
+            _ => {}
         }
     }
 }
@@ -121,5 +121,5 @@ pub fn open_window() {
 
 fn scaled_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> (f32, f32) {
     let (w, h, x, y) = (wi as f32, hi as f32, xi as f32, yi as f32);
-    ((x-w/2.0)/(w/2.0), -(y-h/2.0)/(h/2.0))
+    (x/(w*2.0) - 1.0, -y/(h*2.0))
 }
