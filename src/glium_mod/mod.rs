@@ -81,28 +81,43 @@ pub fn open_window() {
 
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
-    let draw_scene = |window_state: &WindowState, last_window_state: &WindowState| {
+    fn to_uniform<'a, N: na::ToHomogeneous<Mat4<f32>>>(m: N) ->
+        glium::uniforms::UniformsStorage<'a, [[f32; 4]; 4], glium::uniforms::EmptyUniforms> {
+        uniform! { matrix: *na::to_homogeneous(&m).as_array() }
+    }
+
+    let build_uniform = |window_state: &WindowState, last_window_state: &WindowState| {
         let (x, y) = window_state.scaled_mouse_position;
-        let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 1.0, 1.0);
+        let (last_x, last_y) = window_state.last_scaled_mouse_position;
+
+        let dx = x - last_x;
+        let dy = y - last_y;
+        let scale = 1.0;
+
+        let last_rot = &last_window_state.uniform_mat.rotation;
+        let rot =
+            if window_state.is_left_drag {
+                let vec = &Vec3::new(dx/scale, dy/scale, 0.0);
+                let z = Vec3::new(0.0, 0.0, 1.0);
+                //Rot3::new(na::rotate(last_rot, &Vec3::new(dx/scale, dy/scale, 0.0)))
+                let mut new_rot = last_rot.clone();
+                new_rot.look_at(vec, &z);
+                new_rot
+            } else {
+                *last_rot
+            };
 
         let iso = Iso3::new_with_rotmat(
-                    Vec3::new(x, y, 0.0),
-                    Rot3::new(Vec3::new(0f32, 0.0, 0.0)));
+                    Vec3::new(x, y, 0.0), rot);
 
-        let homo: Mat4<_> = na::to_homogeneous(&iso);
-
-        let uniforms = uniform! { matrix: *homo.as_array() };
-
-        target.draw(&vertex_buffer, &indices, &program, &uniforms,
-            &Default::default()).unwrap();
-        target.finish();
+        iso
     };
 
-    let last_window_state = WindowState {
+    let mut last_window_state = WindowState {
         scaled_mouse_position: (1337.0, 1337.0),
         last_scaled_mouse_position: (1338.0, 1338.0),
-        is_left_drag: false
+        is_left_drag: false,
+        uniform_mat: na::Iso3::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0))//na::Eye::new_identity(4)
     };
     for event in display.wait_events() {
         let mut window_state = last_window_state.clone();
@@ -131,7 +146,18 @@ pub fn open_window() {
             //_ => {}
         }
 
-        draw_scene(&window_state, &last_window_state);
+        let uniform_mat = build_uniform(&window_state, &last_window_state);
+        let uniforms = to_uniform(uniform_mat);
+
+        let mut target = display.draw();
+        target.clear_color(0.0, 0.0, 1.0, 1.0);
+
+        target.draw(&vertex_buffer, &indices, &program, &uniforms,
+            &Default::default()).unwrap();
+        target.finish();
+
+        last_window_state = window_state;
+        last_window_state.uniform_mat = uniform_mat;
     }
 }
 
@@ -139,7 +165,8 @@ pub fn open_window() {
 struct WindowState {
     scaled_mouse_position: (f32, f32),
     last_scaled_mouse_position: (f32, f32),
-    is_left_drag: bool
+    is_left_drag: bool,
+    uniform_mat: Iso3<f32>
 }
 
 
