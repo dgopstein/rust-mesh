@@ -1,3 +1,5 @@
+use std;
+
 fn octahedron(length: f32) -> Vec<Vertex> {
     let ratio = 0.1;
     let top_length = ratio * length;
@@ -28,7 +30,7 @@ fn octahedron(length: f32) -> Vec<Vertex> {
     let triangles =
         triangle_indices.iter().flat_map( |idx| {
             let maybe_vert = vertices.get(*idx);
-            let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1], v[2]]} );
+            let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1], v[2], 1.0]} );
             vert
         }).collect::<Vec<_>>();
 
@@ -37,11 +39,13 @@ fn octahedron(length: f32) -> Vec<Vertex> {
 
 #[derive(Copy, Clone)]
 struct Vertex {
-    position: [f32; 3],
+    position: [f32; 4],
 }
 
 use nalgebra as na;
 use nalgebra::{Mat4, Iso3, Rot3, Vec3};
+
+use glium::draw_parameters::LinearBlendingFactor::*;
 
 #[cfg(feature = "window")]
 pub fn open_window() {
@@ -57,29 +61,121 @@ pub fn open_window() {
     let vertex_buffer = glium::VertexBuffer::new(&display, shape);
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
+    // let vertex_shader_src = r#"
+    //     #version 140
+    //
+    //     in vec4 position;
+    //
+    //     uniform mat4 matrix;
+    //
+    //     void main() {
+    //         gl_Position = matrix * position;
+    //     }
+    // "#;
+    //
+    // let fragment_shader_src = r#"
+    //     #version 140
+    //
+    //     out vec4 color;
+    //
+    //     void main() {
+    //       color = vec4(1.0, 0.5, 0.0, 0.1);
+    //     }
+    // "#;
+
     let vertex_shader_src = r#"
-        #version 140
+    #version 330
 
-        in vec3 position;
+    layout(location = 0) in vec4 position;
 
-        uniform mat4 matrix;
+    uniform mat4 matrix;
 
-        void main() {
-            gl_Position = matrix * vec4(position, 1.0);
-        }
+    out Data
+    {
+        vec4 position;
+    } vdata;
+
+    void main()
+    {
+        vdata.position = matrix * position;
+    }
     "#;
 
     let fragment_shader_src = r#"
-        #version 140
+    #version 330
 
-        out vec4 color;
+    in Data
+    {
+        noperspective in vec3 dist;
+    } gdata;
 
-        void main() {
-          color = vec4(1.0, 0.0, 0.0, 1.0);
-        }
+    out vec4 outputColor;
+
+    uniform sampler2D tex;
+
+    const vec4 wireframeColor = vec4(1.0f, 0.5f, 0.5f, 1.0f);
+    const vec4 fillColor = vec4(1.0f, 1.0f, 1.0f, 0.0f);
+
+    void main()
+    {
+        float d = min(gdata.dist.x, min(gdata.dist.y, gdata.dist.z));
+        float I = exp2(-2*d*d);
+        outputColor = mix(fillColor, wireframeColor, I);
+    }
+
     "#;
 
-    let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+    let geometry_shader_src = r#"
+    #version 330
+    layout(triangles) in;
+    layout(triangle_strip, max_vertices = 3) out;
+
+    in Data
+    {
+        vec4 position;
+    } vdata[3];
+
+    out Data
+    {
+        noperspective out vec3 dist;
+    } gdata;
+
+    void main()
+    {
+        vec2 scale = vec2(500.0f, 500.0f); // scaling factor to make 'd' in frag shader big enough to show something
+        vec2 p0 = scale * vdata[0].position.xy/vdata[0].position.w;
+        vec2 p1 = scale * vdata[1].position.xy/vdata[1].position.w;
+        vec2 p2 = scale * vdata[2].position.xy/vdata[2].position.w;
+
+        vec2 v0 = p2-p1;
+        vec2 v1 = p2-p0;
+        vec2 v2 = p1-p0;
+        float area = abs(v1.x*v2.y - v1.y*v2.x);
+
+        gdata.dist = vec3(area/length(v0),0,0);
+        gl_Position = vdata[0].position;
+        EmitVertex();
+
+        gdata.dist = vec3(0,area/length(v1),0);
+        gl_Position = vdata[1].position;
+        EmitVertex();
+
+        gdata.dist = vec3(0,0,area/length(v2));
+        gl_Position = vdata[2].position;
+        EmitVertex();
+
+        EndPrimitive();
+    }
+    "#;
+
+    let program = glium::Program::from_source(&display,
+            vertex_shader_src, fragment_shader_src,
+            //None
+            Some(geometry_shader_src)
+            ).unwrap_or_else( |err| {
+                println!("Error executing glium::Program::from_source: \n{}", err);
+                std::process::exit(3)
+            });
 
     fn to_uniform<'a, N: na::ToHomogeneous<Mat4<f32>>>(m: N) ->
         glium::uniforms::UniformsStorage<'a, [[f32; 4]; 4], glium::uniforms::EmptyUniforms> {
@@ -97,12 +193,17 @@ pub fn open_window() {
         let last_rot = &last_window_state.uniform_mat.rotation;
         let rot =
             if window_state.is_left_drag {
-                let vec = &Vec3::new(dx/scale, dy/scale, 0.0);
-                let z = Vec3::new(0.0, 0.0, 1.0);
+                let vec = &Vec3::new(x/scale, y/scale, 0.0);
+
+                Rot3::new(*vec)
+
+                //let z = Vec3::new(0.0, 0.0, 1.0);
+
                 //Rot3::new(na::rotate(last_rot, &Vec3::new(dx/scale, dy/scale, 0.0)))
-                let mut new_rot = last_rot.clone();
-                new_rot.look_at(vec, &z);
-                new_rot
+
+                // let mut new_rot = last_rot.clone();
+                // new_rot.look_at(vec, &z);
+                // new_rot
             } else {
                 *last_rot
             };
@@ -152,8 +253,15 @@ pub fn open_window() {
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
 
-        target.draw(&vertex_buffer, &indices, &program, &uniforms,
-            &Default::default()).unwrap();
+        let params = glium::DrawParameters {
+                        blending_function: Some(glium::BlendingFunction::Addition { source: SourceAlpha, destination: OneMinusSourceAlpha }),
+                        ..
+                        Default::default()
+                    };
+
+
+        target.draw(&vertex_buffer, &indices, &program,
+                    &uniforms, &params).unwrap();
         target.finish();
 
         last_window_state = window_state;
