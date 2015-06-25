@@ -229,11 +229,26 @@ pub fn open_window() {
                 break;
             }
             Event::MouseMoved((x, y)) => {
-                //println!("Mouse: ({}, {})", x, y);
-                let size = display.get_window().and_then( |win|
-                    win.get_inner_size()).unwrap_or((2880, 1800));
+                println!("Mouse: ({}, {})", x, y);
+
+                let size = {
+                    let (unscaled, scale) = {
+                        display.get_window().map(|win| {
+
+                            (win.get_inner_size().unwrap_or((1337, 1337)),
+                             win.hidpi_factor())
+                        }).unwrap_or(((1337, 1337), 1.0))
+                    };
+
+                    let (w, h) = ((unscaled.0 as f32 * scale) as u32,
+                                  (unscaled.1 as f32 * scale) as u32);
+
+                    (w, h)
+                };
+
+                // println!("window ize: {:?}", size);
                 let scaled_mouse = scale_mouse_position(size, (x, y));
-                //println!("scaled_mouse: {:?}", scaled_mouse);
+                // println!("scaled_mouse: {:?}", scaled_mouse);
                 window_state.scaled_mouse_position = scaled_mouse;
             }
             Event::MouseInput(action, button) => {
@@ -243,8 +258,8 @@ pub fn open_window() {
                     _ => {}
                 }
             }
-            event => println!("Event: {:?}", event)
-            //_ => {}
+            // event => println!("Event: {:?}", event)
+            _ => {}
         }
 
         let uniform_mat = build_uniform(&window_state, &last_window_state);
@@ -277,8 +292,7 @@ struct WindowState {
     uniform_mat: Iso3<f32>
 }
 
-
 fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> (f32, f32) {
     let (w, h, x, y) = (wi as f32, hi as f32, xi as f32, yi as f32);
-    (x/(w*2.0) - 1.0, -y/(h*2.0))
+    (x/w - 1.0, -y/h)
 }
