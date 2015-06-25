@@ -286,13 +286,26 @@ pub fn open_window() {
 
 #[derive(Clone)]
 struct WindowState {
-    scaled_mouse_position: (f32, f32),
-    last_scaled_mouse_position: (f32, f32),
+    scaled_mouse_position: ScaledMousePosition,
+    last_scaled_mouse_position: ScaledMousePosition,
     is_left_drag: bool,
     uniform_mat: Iso3<f32>
 }
 
-fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> (f32, f32) {
+fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> ScaledMousePosition {
     let (w, h, x, y) = (wi as f32, hi as f32, xi as f32, yi as f32);
     (x/w - 1.0, -y/h)
+}
+
+type ScaledMousePosition = (f32, f32);
+
+fn get_arcball_vector((x, y): ScaledMousePosition) -> Vec3<f32> {
+    let op_squared = x * x + y * y;
+
+    if op_squared <= 1.0 {
+        let z = (1.0 - op_squared).sqrt();  // Pythagorean
+        Vec3::new(x, y, z)
+    } else {
+        na::normalize(&Vec3::new(x, y, 0.0))  // nearest point
+    }
 }
