@@ -1,43 +1,6 @@
 use std;
 use core::ops::Mul;
 
-// fn octahedron(length: f32) -> Vec<Vertex> {
-//     let ratio = 0.1;
-//     let top_length = ratio * length;
-//     let thel: f32 = (2.0f32).sqrt() * top_length / 2.0;
-//
-//     let vertices = [
-//         [  0.0,   0.0,        0.0],
-//         [-thel,  thel, top_length],
-//         [ thel,  thel, top_length],
-//         [ thel, -thel, top_length],
-//         [-thel, -thel, top_length],
-//         [  0.0,   0.0,     length]
-//       ];
-//
-//
-//     let triangle_indices = [
-//             0, 1, 2,
-//             0, 2, 3,
-//             0, 3, 4,
-//             0, 4, 1,
-//
-//             5, 2, 1,
-//             5, 3, 2,
-//             5, 4, 3,
-//             5, 1, 4usize
-//         ];
-//
-//     let triangles =
-//         triangle_indices.iter().flat_map( |idx| {
-//             let maybe_vert = vertices.get(*idx);
-//             let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1], v[2], 1.0]} );
-//             vert
-//         }).collect::<Vec<_>>();
-//
-//     triangles
-// }
-
 use nalgebra as na;
 use nalgebra::{Mat4, Iso3, Rot3, Vec3};
 
