@@ -1,51 +1,49 @@
 use std;
+use core::ops::Mul;
 
-fn octahedron(length: f32) -> Vec<Vertex> {
-    let ratio = 0.1;
-    let top_length = ratio * length;
-    let thel: f32 = (2.0f32).sqrt() * top_length / 2.0;
-
-    let vertices = [
-        [  0.0,   0.0,        0.0],
-        [-thel,  thel, top_length],
-        [ thel,  thel, top_length],
-        [ thel, -thel, top_length],
-        [-thel, -thel, top_length],
-        [  0.0,   0.0,     length]
-      ];
-
-
-    let triangle_indices = [
-            0, 1, 2,
-            0, 2, 3,
-            0, 3, 4,
-            0, 4, 1,
-
-            5, 2, 1,
-            5, 3, 2,
-            5, 4, 3,
-            5, 1, 4usize
-        ];
-
-    let triangles =
-        triangle_indices.iter().flat_map( |idx| {
-            let maybe_vert = vertices.get(*idx);
-            let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1], v[2], 1.0]} );
-            vert
-        }).collect::<Vec<_>>();
-
-    triangles
-}
-
-#[derive(Copy, Clone)]
-struct Vertex {
-    position: [f32; 4],
-}
+// fn octahedron(length: f32) -> Vec<Vertex> {
+//     let ratio = 0.1;
+//     let top_length = ratio * length;
+//     let thel: f32 = (2.0f32).sqrt() * top_length / 2.0;
+//
+//     let vertices = [
+//         [  0.0,   0.0,        0.0],
+//         [-thel,  thel, top_length],
+//         [ thel,  thel, top_length],
+//         [ thel, -thel, top_length],
+//         [-thel, -thel, top_length],
+//         [  0.0,   0.0,     length]
+//       ];
+//
+//
+//     let triangle_indices = [
+//             0, 1, 2,
+//             0, 2, 3,
+//             0, 3, 4,
+//             0, 4, 1,
+//
+//             5, 2, 1,
+//             5, 3, 2,
+//             5, 4, 3,
+//             5, 1, 4usize
+//         ];
+//
+//     let triangles =
+//         triangle_indices.iter().flat_map( |idx| {
+//             let maybe_vert = vertices.get(*idx);
+//             let vert = maybe_vert.map( |v| Vertex{position: [v[0], v[1], v[2], 1.0]} );
+//             vert
+//         }).collect::<Vec<_>>();
+//
+//     triangles
+// }
 
 use nalgebra as na;
 use nalgebra::{Mat4, Iso3, Rot3, Vec3};
 
 use glium::draw_parameters::LinearBlendingFactor::*;
+
+use octahedron;
 
 #[cfg(feature = "window")]
 pub fn open_window() {
@@ -54,34 +52,10 @@ pub fn open_window() {
     use glium::glutin::{Event, ElementState, MouseButton};
     let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
-    implement_vertex!(Vertex, position);
-
-    let shape = octahedron(0.5);
+    let shape = octahedron::octahedron(0.5).faces();
 
     let vertex_buffer = glium::VertexBuffer::new(&display, shape);
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-
-    // let vertex_shader_src = r#"
-    //     #version 140
-    //
-    //     in vec4 position;
-    //
-    //     uniform mat4 matrix;
-    //
-    //     void main() {
-    //         gl_Position = matrix * position;
-    //     }
-    // "#;
-    //
-    // let fragment_shader_src = r#"
-    //     #version 140
-    //
-    //     out vec4 color;
-    //
-    //     void main() {
-    //       color = vec4(1.0, 0.5, 0.0, 0.1);
-    //     }
-    // "#;
 
     let vertex_shader_src = r#"
     #version 330
@@ -183,42 +157,40 @@ pub fn open_window() {
     }
 
     let build_uniform = |window_state: &WindowState, last_window_state: &WindowState| {
-        let (x, y) = window_state.scaled_mouse_position;
-        let (last_x, last_y) = window_state.last_scaled_mouse_position;
+        let last_mouse = window_state.last_scaled_mouse_position;
+        let cur_mouse = window_state.scaled_mouse_position;
+        let (x, y) = cur_mouse;
 
-        let dx = x - last_x;
-        let dy = y - last_y;
-        let scale = 1.0;
 
-        let last_rot = &last_window_state.uniform_mat.rotation;
+        // let last_rot = &last_window_state.uniform_mat.rotation;
+        let last_rot = &last_window_state.uniform_mat;
         let rot =
             if window_state.is_left_drag {
-                let vec = &Vec3::new(x/scale, y/scale, 0.0);
+                let arc_rot = arcball_rotation(last_mouse, cur_mouse);
 
-                Rot3::new(*vec)
-
-                //let z = Vec3::new(0.0, 0.0, 1.0);
-
-                //Rot3::new(na::rotate(last_rot, &Vec3::new(dx/scale, dy/scale, 0.0)))
-
-                // let mut new_rot = last_rot.clone();
-                // new_rot.look_at(vec, &z);
-                // new_rot
+                // last_rot.mul(arc_rot)
+                last_rot.mul(na::to_homogeneous(&arc_rot))
             } else {
                 *last_rot
             };
 
-        let iso = Iso3::new_with_rotmat(
-                    Vec3::new(x, y, 0.0), rot);
+        let trans_iso = Iso3::new_with_rotmat(
+                    // Vec3::new(x, y, 0.0), rot);
+                    // Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
+                    Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
 
-        iso
+        // let rot_iso = Iso3::new_with_rotmat(
+        //         Vec3::new(0.0, 0.0, 0.0), rot);
+
+        na::to_homogeneous(&trans_iso) * rot
     };
 
     let mut last_window_state = WindowState {
         scaled_mouse_position: (1337.0, 1337.0),
         last_scaled_mouse_position: (1338.0, 1338.0),
         is_left_drag: false,
-        uniform_mat: na::Iso3::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0))//na::Eye::new_identity(4)
+        // uniform_mat: na::Iso3::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0))
+        uniform_mat: na::Eye::new_identity(4)
     };
     for event in display.wait_events() {
         let mut window_state = last_window_state.clone();
@@ -229,25 +201,21 @@ pub fn open_window() {
                 break;
             }
             Event::MouseMoved((x, y)) => {
-                println!("Mouse: ({}, {})", x, y);
+                // println!("Mouse: ({}, {})", x, y);
 
-                let size = {
-                    let (unscaled, scale) = {
-                        display.get_window().map(|win| {
+                let (size, scale) =
+                    display.get_window().map(|win| {
 
-                            (win.get_inner_size().unwrap_or((1337, 1337)),
-                             win.hidpi_factor())
-                        }).unwrap_or(((1337, 1337), 1.0))
-                    };
+                        (win.get_inner_size().unwrap_or((1337, 1337)),
+                         win.hidpi_factor())
+                    }).unwrap_or(((1337, 1337), 1.0));
 
-                    let (w, h) = ((unscaled.0 as f32 * scale) as u32,
-                                  (unscaled.1 as f32 * scale) as u32);
-
-                    (w, h)
-                };
 
                 // println!("window ize: {:?}", size);
-                let scaled_mouse = scale_mouse_position(size, (x, y));
+                let scaled_x = ((x as f32) / scale).round() as i32;
+                let scaled_y = ((y as f32) / scale).round() as i32;
+
+                let scaled_mouse = scale_mouse_position(size, (scaled_x, scaled_y));
                 // println!("scaled_mouse: {:?}", scaled_mouse);
                 window_state.scaled_mouse_position = scaled_mouse;
             }
@@ -263,10 +231,12 @@ pub fn open_window() {
         }
 
         let uniform_mat = build_uniform(&window_state, &last_window_state);
-        let uniforms = to_uniform(uniform_mat);
+        // let uniforms = to_uniform(uniform_mat);
+        let uniforms = uniform! { matrix: *uniform_mat.as_array() };
+
 
         let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 1.0, 1.0);
+        target.clear_color(0.1, 0.3, 0.6, 1.0);
 
         let params = glium::DrawParameters {
                         blending_function: Some(glium::BlendingFunction::Addition { source: SourceAlpha, destination: OneMinusSourceAlpha }),
@@ -274,9 +244,17 @@ pub fn open_window() {
                         Default::default()
                     };
 
+        // target.draw(&vertex_buffer, &indices, &program,
+                    // &uniforms, &params).unwrap();
+
+        let trans_iso = Iso3::new_with_rotmat(
+                    Vec3::new(0.0, 0.0, -0.15), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
+        let mat2: Mat4<f32> = uniform_mat * na::to_homogeneous(&trans_iso);
+        let uniforms2 = uniform! { matrix: *mat2.as_array() };
 
         target.draw(&vertex_buffer, &indices, &program,
-                    &uniforms, &params).unwrap();
+                    &uniforms2, &params).unwrap();
+
         target.finish();
 
         last_window_state = window_state;
@@ -289,17 +267,19 @@ struct WindowState {
     scaled_mouse_position: ScaledMousePosition,
     last_scaled_mouse_position: ScaledMousePosition,
     is_left_drag: bool,
-    uniform_mat: Iso3<f32>
+    // uniform_mat: Iso3<f32>
+    uniform_mat: Mat4<f32>
 }
 
 fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> ScaledMousePosition {
     let (w, h, x, y) = (wi as f32, hi as f32, xi as f32, yi as f32);
-    (x/w - 1.0, -y/h)
+    (2.0*x/w - 1.0, 1.0-2.0*y/h)
 }
 
 type ScaledMousePosition = (f32, f32);
 
-fn get_arcball_vector((x, y): ScaledMousePosition) -> Vec3<f32> {
+// https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Arcball
+fn arcball_vector((x, y): ScaledMousePosition) -> Vec3<f32> {
     let op_squared = x * x + y * y;
 
     if op_squared <= 1.0 {
@@ -308,4 +288,16 @@ fn get_arcball_vector((x, y): ScaledMousePosition) -> Vec3<f32> {
     } else {
         na::normalize(&Vec3::new(x, y, 0.0))  // nearest point
     }
+}
+
+fn arcball_rotation(last: ScaledMousePosition, cur: ScaledMousePosition) -> Rot3<f32> {
+    let va = arcball_vector(last);
+    let vb = arcball_vector(cur);
+    let angle = na::dot(&va, &vb).min(1.0).acos();
+    let axis_in_camera_coord = na::cross(&va, &vb);
+    // glm::mat3 camera2object = glm::inverse(glm::mat3(transforms[MODE_CAMERA]) * glm::mat3(mesh.object2world));
+    // glm::vec3 axis_in_object_coord = camera2object * axis_in_camera_coord;
+    // mesh.object2world = glm::rotate(mesh.object2world, glm::degrees(angle), axis_in_object_coord);
+
+    Rot3::new(axis_in_camera_coord * angle * 0.07) // 1 / (360 / (2 * pi))
 }

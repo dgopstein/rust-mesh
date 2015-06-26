@@ -1,3 +1,5 @@
+#![feature(core)]
+
 extern crate assimp;
 
 use std::env;
@@ -10,8 +12,12 @@ use std::env;
 extern crate glium;
 extern crate glutin;
 extern crate nalgebra;
+extern crate core;
 
 mod glium_mod;
+// mod scene_element;
+mod triangle_mesh;
+mod octahedron;
 
 fn read_scene_from_args<'a>() -> &'a assimp::ffi::aiScene {
   let print_usage_and_die = || {
