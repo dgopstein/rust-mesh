@@ -7,6 +7,7 @@ use nalgebra::{Mat4, Iso3, Rot3, Vec3};
 use glium::draw_parameters::LinearBlendingFactor::*;
 
 use octahedron;
+use icosphere;
 
 #[cfg(feature = "window")]
 pub fn open_window() {
@@ -15,7 +16,7 @@ pub fn open_window() {
     use glium::glutin::{Event, ElementState, MouseButton};
     let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
-    let shape = octahedron::octahedron(0.5).faces();
+    let shape = icosphere::icosphere(0.1).faces();//octahedron::octahedron(0.5).faces();
 
     let vertex_buffer = glium::VertexBuffer::new(&display, shape);
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
@@ -140,6 +141,7 @@ pub fn open_window() {
         let trans_iso = Iso3::new_with_rotmat(
                     // Vec3::new(x, y, 0.0), rot);
                     // Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
+                    //Vec3::new(x, y, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
                     Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
 
         // let rot_iso = Iso3::new_with_rotmat(

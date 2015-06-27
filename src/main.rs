@@ -18,6 +18,7 @@ mod glium_mod;
 // mod scene_element;
 mod triangle_mesh;
 mod octahedron;
+mod icosphere;
 
 fn read_scene_from_args<'a>() -> &'a assimp::ffi::aiScene {
   let print_usage_and_die = || {
