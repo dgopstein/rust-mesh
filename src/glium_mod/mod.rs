@@ -138,11 +138,15 @@ pub fn open_window() {
                 *last_rot
             };
 
+        let (scroll_x, scroll_y) = window_state.mouse_wheel_scroll;
+        let translate = Vec3::new(scroll_x as f32, scroll_y as f32, 0.0);
+
         let trans_iso = Iso3::new_with_rotmat(
                     // Vec3::new(x, y, 0.0), rot);
                     // Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
                     //Vec3::new(x, y, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
-                    Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
+                    // Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
+                    translate, Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
 
         // let rot_iso = Iso3::new_with_rotmat(
         //         Vec3::new(0.0, 0.0, 0.0), rot);
@@ -153,12 +157,19 @@ pub fn open_window() {
     let mut last_window_state = WindowState {
         scaled_mouse_position: (1337.0, 1337.0),
         last_scaled_mouse_position: (1338.0, 1338.0),
+        mouse_wheel_scroll: (0.0, 0.0),
         is_left_drag: false,
-        // uniform_mat: na::Iso3::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0))
         uniform_mat: na::Eye::new_identity(4)
     };
     for event in display.wait_events() {
         let mut window_state = last_window_state.clone();
+
+        let (size, scale) =
+            display.get_window().map(|win| {
+
+                (win.get_inner_size().unwrap_or((1337, 1337)),
+                 win.hidpi_factor())
+            }).unwrap_or(((1337, 1337), 1.0));
 
         match event {
             Event::Closed => {
@@ -167,15 +178,6 @@ pub fn open_window() {
             }
             Event::MouseMoved((x, y)) => {
                 // println!("Mouse: ({}, {})", x, y);
-
-                let (size, scale) =
-                    display.get_window().map(|win| {
-
-                        (win.get_inner_size().unwrap_or((1337, 1337)),
-                         win.hidpi_factor())
-                    }).unwrap_or(((1337, 1337), 1.0));
-
-
                 // println!("window ize: {:?}", size);
                 let scaled_x = ((x as f32) / scale).round() as i32;
                 let scaled_y = ((y as f32) / scale).round() as i32;
@@ -184,6 +186,9 @@ pub fn open_window() {
                 // println!("scaled_mouse: {:?}", scaled_mouse);
                 window_state.scaled_mouse_position = scaled_mouse;
             }
+            Event::MouseWheel(x, y) => {
+                window_state.mouse_wheel_scroll = (x / size.0 as f64, -y / size.1 as f64);
+                },
             Event::MouseInput(action, button) => {
                 match (action, button) {
                     (ElementState::Pressed,  MouseButton::Left) => { window_state.is_left_drag = true; }
@@ -232,7 +237,7 @@ struct WindowState {
     scaled_mouse_position: ScaledMousePosition,
     last_scaled_mouse_position: ScaledMousePosition,
     is_left_drag: bool,
-    // uniform_mat: Iso3<f32>
+    mouse_wheel_scroll: (f64, f64),
     uniform_mat: Mat4<f32>
 }
 
