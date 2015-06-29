@@ -13,6 +13,7 @@ extern crate glium;
 extern crate glutin;
 extern crate nalgebra;
 extern crate core;
+extern crate num;
 
 mod glium_mod;
 mod scene_element;

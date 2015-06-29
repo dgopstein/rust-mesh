@@ -9,6 +9,8 @@ use glium::draw_parameters::LinearBlendingFactor::*;
 use octahedron;
 use icosphere;
 use triangle_mesh::Mesh;
+use scene_element::SceneElement;
+use num::traits::Zero;
 
 #[cfg(feature = "window")]
 pub fn open_window() {
@@ -17,9 +19,15 @@ pub fn open_window() {
     use glium::glutin::{Event, ElementState, MouseButton};
     let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
-    let shape = icosphere::icosphere(0.1).faces();//octahedron::octahedron(0.5).faces();
+    let transform = Iso3::new(Vec3::new(-0.5, 0.0, 0.0), Vec3::zero());
 
-    let vertex_buffer = glium::VertexBuffer::new(&display, shape);
+    let scene_elem =
+        SceneElement {
+            mesh: &icosphere::icosphere(0.1),//octahedron::octahedron(0.5).faces();
+            transformations: vec![&transform]
+        };
+
+    let vertex_buffer = glium::VertexBuffer::new(&display, scene_elem.mesh.faces());
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     let vertex_shader_src = r#"

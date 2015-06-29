@@ -2,8 +2,8 @@ use triangle_mesh as mesh;
 use nalgebra as na;
 use nalgebra::{Mat3, Mat4};
 
-type Transformation = na::ToHomogeneous<Mat4<f32>>;
-type Transformations<'a> = Vec<&'a Transformation>;
+pub type Transformation = na::ToHomogeneous<Mat4<f32>>;
+pub type Transformations<'a> = Vec<&'a Transformation>;
 
 trait Transformable<'a> {
     fn transformations(&self) -> &Transformations<'a>;
@@ -15,9 +15,9 @@ trait Transformable<'a> {
     }
 }
 
-struct SceneElement<'a> {
-    element: &'a mesh::Mesh,
-    transformations: Transformations<'a>
+pub struct SceneElement<'a> {
+    pub mesh: &'a mesh::Mesh,
+    pub transformations: Transformations<'a>
 }
 
 impl<'a> Transformable<'a> for SceneElement<'a> {
