@@ -13,8 +13,12 @@ pub struct TriangleMesh {
     pub indices: Vec<TriangleIndices>
 }
 
-impl TriangleMesh {
-    pub fn faces(&self) -> Vec<Vertex> {
+pub trait Mesh {
+    fn faces(&self) -> Vec<Vertex>;
+}
+
+impl Mesh for TriangleMesh {
+    fn faces(&self) -> Vec<Vertex> {
         self.indices.iter().flat_map( |idxs| {
             idxs.iter().flat_map( |idx| {
                 self.vertices.get(*idx).map( |v|

@@ -15,7 +15,7 @@ extern crate nalgebra;
 extern crate core;
 
 mod glium_mod;
-// mod scene_element;
+mod scene_element;
 mod triangle_mesh;
 mod octahedron;
 mod icosphere;

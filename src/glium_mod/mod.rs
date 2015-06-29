@@ -8,6 +8,7 @@ use glium::draw_parameters::LinearBlendingFactor::*;
 
 use octahedron;
 use icosphere;
+use triangle_mesh::Mesh;
 
 #[cfg(feature = "window")]
 pub fn open_window() {
