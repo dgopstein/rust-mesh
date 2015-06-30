@@ -44,30 +44,19 @@ pub fn open_window() {
                 std::process::exit(3)
             });
 
-    fn to_uniform<'a, N: na::ToHomogeneous<Mat4<f32>>>(m: N) ->
-        glium::uniforms::UniformsStorage<'a, [[f32; 4]; 4], glium::uniforms::EmptyUniforms> {
-        uniform! { matrix: *na::to_homogeneous(&m).as_array() }
-    }
-
-    let build_uniform = |window_state: &WindowState, last_window_state: &WindowState, last_uniform: &Mat4<f32>| {
-        let last_mouse = last_window_state.scaled_mouse_position;
-        let cur_mouse = window_state.scaled_mouse_position;
-
-        println!("last_mouse:        {:?}", last_mouse);
-        println!("cur_mouse:         {:?}", cur_mouse);
-        println!("");
-
-
+    let build_uniform = |ws: &WindowState, last_ws: &WindowState, last_uniform: &Mat4<f32>| {
         let rot =
-            if window_state.is_left_drag {
-                let arc_rot = arcball_rotation(last_mouse, cur_mouse);
+            if ws.is_left_drag {
+                let arc_rot =
+                    arcball_rotation(last_ws.scaled_mouse_position,
+                                          ws.scaled_mouse_position);
 
                 last_uniform.mul(na::to_homogeneous(&arc_rot))
             } else {
                 *last_uniform
             };
 
-        let (scroll_x, scroll_y) = window_state.mouse_wheel_scroll;
+        let (scroll_x, scroll_y) = ws.mouse_wheel_scroll;
         let translate = Vec3::new(scroll_x as f32, scroll_y as f32, 0.0);
 
         let trans_iso = Iso3::new_with_rotmat(
@@ -125,9 +114,6 @@ pub fn open_window() {
         }
 
         let new_uniform = build_uniform(&window_state, &last_window_state, &last_uniform);
-        // let uniforms = to_uniform(uniform_mat);
-        let uniforms = uniform! { matrix: *new_uniform.as_array() };
-
 
         let mut target = display.draw();
         target.clear_color(0.1, 0.3, 0.6, 1.0);
@@ -197,9 +183,6 @@ fn arcball_rotation(last: ScaledMousePosition, cur: ScaledMousePosition) -> Rot3
     let vb = arcball_vector(cur);
     let angle = na::dot(&va, &vb).min(1.0).acos();
     let axis_in_camera_coord = na::cross(&va, &vb);
-    // glm::mat3 camera2object = glm::inverse(glm::mat3(transforms[MODE_CAMERA]) * glm::mat3(mesh.object2world));
-    // glm::vec3 axis_in_object_coord = camera2object * axis_in_camera_coord;
-    // mesh.object2world = glm::rotate(mesh.object2world, glm::degrees(angle), axis_in_object_coord);
 
     Rot3::new(axis_in_camera_coord * angle * 4.0) // 1 / (360 / (2 * pi))
 }
