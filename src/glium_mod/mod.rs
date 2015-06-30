@@ -50,17 +50,18 @@ pub fn open_window() {
     }
 
     let build_uniform = |window_state: &WindowState, last_window_state: &WindowState, last_uniform: &Mat4<f32>| {
-        let last_mouse = window_state.last_scaled_mouse_position;
+        let last_mouse = last_window_state.scaled_mouse_position;
         let cur_mouse = window_state.scaled_mouse_position;
-        let (x, y) = cur_mouse;
+
+        println!("last_mouse:        {:?}", last_mouse);
+        println!("cur_mouse:         {:?}", cur_mouse);
+        println!("");
 
 
-        // let last_rot = &last_window_state.uniform_mat.rotation;
         let rot =
             if window_state.is_left_drag {
                 let arc_rot = arcball_rotation(last_mouse, cur_mouse);
 
-                // last_rot.mul(arc_rot)
                 last_uniform.mul(na::to_homogeneous(&arc_rot))
             } else {
                 *last_uniform
@@ -70,21 +71,14 @@ pub fn open_window() {
         let translate = Vec3::new(scroll_x as f32, scroll_y as f32, 0.0);
 
         let trans_iso = Iso3::new_with_rotmat(
-                    // Vec3::new(x, y, 0.0), rot);
-                    // Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
-                    //Vec3::new(x, y, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
-                    // Vec3::new(0.0, 0.0, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
+                    // Vec3::new(x, y, 0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
                     translate, Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
-
-        // let rot_iso = Iso3::new_with_rotmat(
-        //         Vec3::new(0.0, 0.0, 0.0), rot);
 
         na::to_homogeneous(&trans_iso) * rot
     };
 
     let mut last_window_state = WindowState {
         scaled_mouse_position: (1337.0, 1337.0),
-        last_scaled_mouse_position: (1338.0, 1338.0),
         mouse_wheel_scroll: (0.0, 0.0),
         is_left_drag: false,
     };
@@ -175,7 +169,6 @@ pub fn open_window() {
 #[derive(Clone)]
 struct WindowState {
     scaled_mouse_position: ScaledMousePosition,
-    last_scaled_mouse_position: ScaledMousePosition,
     is_left_drag: bool,
     mouse_wheel_scroll: (f64, f64)
 }
@@ -208,5 +201,5 @@ fn arcball_rotation(last: ScaledMousePosition, cur: ScaledMousePosition) -> Rot3
     // glm::vec3 axis_in_object_coord = camera2object * axis_in_camera_coord;
     // mesh.object2world = glm::rotate(mesh.object2world, glm::degrees(angle), axis_in_object_coord);
 
-    Rot3::new(axis_in_camera_coord * angle * 0.07) // 1 / (360 / (2 * pi))
+    Rot3::new(axis_in_camera_coord * angle * 4.0) // 1 / (360 / (2 * pi))
 }
