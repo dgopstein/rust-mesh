@@ -5,8 +5,6 @@ authors = ["Dan Gopstein <dan@gopstein.com>"]
 
 [dependencies]
 libc      = "*"
-#gl        = "*"
-#glfw      = "*"
 glium     = "*"
 glutin    = "*"
 gl_common = "*"

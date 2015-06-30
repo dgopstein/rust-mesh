@@ -4,10 +4,6 @@ extern crate assimp;
 
 use std::env;
 
-//mod gl_mod;
-//extern crate gl;
-//extern crate glfw;
-
 #[macro_use]
 extern crate glium;
 extern crate glutin;
