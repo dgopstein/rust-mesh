@@ -19,18 +19,6 @@ pub fn open_window() {
     use glium;
     use glium::{DisplayBuild, Surface};
     use glium::glutin::{Event, ElementState, MouseButton};
-    let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
-
-    let transform = Iso3::new(Vec3::new(-0.5, 0.0, 0.0), Vec3::zero());
-
-    let scene_elem =
-        SceneElement {
-            mesh: &icosphere::icosphere(0.1),//octahedron::octahedron(0.5).faces();
-            transformations: vec![&transform]
-        };
-
-    let vertex_buffer = glium::VertexBuffer::new(&display, scene_elem.mesh.faces());
-    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     fn read_glsl(filename: &str) -> String {
         let mut ret = String::new();
@@ -42,10 +30,11 @@ pub fn open_window() {
         ret
     }
 
-    let vertex_shader_src = read_glsl("wireframe_vertex");
+    let vertex_shader_src   = read_glsl("wireframe_vertex");
     let fragment_shader_src = read_glsl("wireframe_fragment");
     let geometry_shader_src = read_glsl("wireframe_geometry");
 
+        let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
     let program = glium::Program::from_source(&display,
             &vertex_shader_src, &fragment_shader_src,
             //None
@@ -60,22 +49,21 @@ pub fn open_window() {
         uniform! { matrix: *na::to_homogeneous(&m).as_array() }
     }
 
-    let build_uniform = |window_state: &WindowState, last_window_state: &WindowState| {
+    let build_uniform = |window_state: &WindowState, last_window_state: &WindowState, last_uniform: &Mat4<f32>| {
         let last_mouse = window_state.last_scaled_mouse_position;
         let cur_mouse = window_state.scaled_mouse_position;
         let (x, y) = cur_mouse;
 
 
         // let last_rot = &last_window_state.uniform_mat.rotation;
-        let last_rot = &last_window_state.uniform_mat;
         let rot =
             if window_state.is_left_drag {
                 let arc_rot = arcball_rotation(last_mouse, cur_mouse);
 
                 // last_rot.mul(arc_rot)
-                last_rot.mul(na::to_homogeneous(&arc_rot))
+                last_uniform.mul(na::to_homogeneous(&arc_rot))
             } else {
-                *last_rot
+                *last_uniform
             };
 
         let (scroll_x, scroll_y) = window_state.mouse_wheel_scroll;
@@ -99,8 +87,10 @@ pub fn open_window() {
         last_scaled_mouse_position: (1338.0, 1338.0),
         mouse_wheel_scroll: (0.0, 0.0),
         is_left_drag: false,
-        uniform_mat: na::Eye::new_identity(4)
     };
+
+    let mut last_uniform: Mat4<f32> = na::Eye::new_identity(4);
+
     for event in display.wait_events() {
         let mut window_state = last_window_state.clone();
 
@@ -140,9 +130,9 @@ pub fn open_window() {
             _ => {}
         }
 
-        let uniform_mat = build_uniform(&window_state, &last_window_state);
+        let new_uniform = build_uniform(&window_state, &last_window_state, &last_uniform);
         // let uniforms = to_uniform(uniform_mat);
-        let uniforms = uniform! { matrix: *uniform_mat.as_array() };
+        let uniforms = uniform! { matrix: *new_uniform.as_array() };
 
 
         let mut target = display.draw();
@@ -159,8 +149,18 @@ pub fn open_window() {
 
         let trans_iso = Iso3::new_with_rotmat(
                     Vec3::new(0.0, 0.0, -0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
-        let mat2: Mat4<f32> = uniform_mat * na::to_homogeneous(&trans_iso);
+        let mat2: Mat4<f32> = new_uniform * na::to_homogeneous(&trans_iso);
         let uniforms2 = uniform! { matrix: *mat2.as_array() };
+
+        let transform = Iso3::new(Vec3::new(-0.5, 0.0, 0.0), Vec3::zero());
+        let scene_elem =
+            SceneElement {
+                mesh: &icosphere::icosphere(0.1),
+                transformations: vec![&transform]
+            };
+
+        let vertex_buffer = glium::VertexBuffer::new(&display, scene_elem.mesh.faces());
+        let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
         target.draw(&vertex_buffer, &indices, &program,
                     &uniforms2, &params).unwrap();
@@ -168,7 +168,7 @@ pub fn open_window() {
         target.finish();
 
         last_window_state = window_state;
-        last_window_state.uniform_mat = uniform_mat;
+        last_uniform = new_uniform;
     }
 }
 
@@ -177,8 +177,7 @@ struct WindowState {
     scaled_mouse_position: ScaledMousePosition,
     last_scaled_mouse_position: ScaledMousePosition,
     is_left_drag: bool,
-    mouse_wheel_scroll: (f64, f64),
-    uniform_mat: Mat4<f32>
+    mouse_wheel_scroll: (f64, f64)
 }
 
 fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> ScaledMousePosition {
