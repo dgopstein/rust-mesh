@@ -16,6 +16,7 @@ mod scene_element;
 mod triangle_mesh;
 mod octahedron;
 mod icosphere;
+mod assimp_handler;
 
 fn read_scene_from_args<'a>() -> &'a assimp::ffi::aiScene {
   let print_usage_and_die = || {
@@ -40,6 +41,7 @@ fn read_scene_from_args<'a>() -> &'a assimp::ffi::aiScene {
 fn main() {
   let ai_scene = read_scene_from_args();
   println!("aiScene.mNumMeshes: {}", ai_scene.mNumMeshes);
+  assimp_handler::parse_scene(&ai_scene);
 
   glium_mod::open_window();
 }
