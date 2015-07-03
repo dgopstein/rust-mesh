@@ -1,4 +1,5 @@
 #![feature(core)]
+#![feature(unboxed_closures)]
 
 extern crate assimp;
 
