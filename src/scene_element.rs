@@ -1,11 +1,15 @@
 use triangle_mesh as mesh;
 use nalgebra as na;
+use std::rc::Rc;
+
+// trait Transformation: na::ToHomogeneous<na::Mat4<f32>> + Clone {}
+// impl<T: na::ToHomogeneous<na::Mat4<f32> + Clone> Transformation for T {}
 
 pub type Transformation = na::ToHomogeneous<na::Mat4<f32>>;
-pub type Transformations<'a> = Vec<&'a Transformation>;
+pub type Transformations = [Rc<na::ToHomogeneous<na::Mat4<f32>>>];
 
 trait Transformable<'a> {
-    fn transformations(&self) -> &Transformations<'a>;
+    fn transformations(&self) -> &Vec<Rc<na::ToHomogeneous<na::Mat4<f32>> + 'a>>;
 
     fn transformation(&self) -> na::Mat4<f32> {
         self.transformations().iter()
@@ -15,10 +19,11 @@ trait Transformable<'a> {
 }
 
 pub struct SceneElement<'a> {
-    pub mesh: &'a mesh::Mesh,
-    pub transformations: Transformations<'a>
+    pub name: String,
+    pub mesh: Rc<mesh::Mesh>,
+    pub transformations: Box<Vec<Rc<na::ToHomogeneous<na::Mat4<f32>> + 'a>>>,
 }
 
 impl<'a> Transformable<'a> for SceneElement<'a> {
-    fn transformations(&self) -> &Transformations<'a> { &self.transformations }
+    fn transformations(&self) -> &Vec<Rc<na::ToHomogeneous<na::Mat4<f32>> + 'a>> { &*self.transformations }
 }

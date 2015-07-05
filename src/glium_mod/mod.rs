@@ -133,13 +133,16 @@ pub fn open_window() {
         let uniforms2 = uniform! { matrix: *mat2.as_array() };
 
         let transform = Iso3::new(Vec3::new(-0.5, 0.0, 0.0), Vec3::zero());
-        let scene_elem =
-            SceneElement {
-                mesh: &icosphere::icosphere(0.1),
-                transformations: vec![&transform]
-            };
+        // let scene_elem =
+        //     SceneElement {
+        //         name: "icosphere".to_string(),
+        //         mesh: Box::new(icosphere::icosphere(0.1)),
+        //         transformations: vec![Box::new(transform)]
+        //     };
 
-        let vertex_buffer = glium::VertexBuffer::new(&display, scene_elem.mesh.faces());
+        let mesh = icosphere::icosphere(0.1);
+
+        let vertex_buffer = glium::VertexBuffer::new(&display, mesh.faces());
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
         target.draw(&vertex_buffer, &indices, &program,
