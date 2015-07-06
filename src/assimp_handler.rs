@@ -73,12 +73,26 @@ pub fn build_scene_elements<'a>(node: &aiNode) -> Vec<SceneElement<'a>> {
     bse(node, &Vec::new())
 }
 
+fn format_mat(x: &na::ToHomogeneous<na::Mat4<f32>>) -> String {
+    format!("{:?}", x.to_homogeneous())
+}
+
 pub fn parse_scene(scene: &aiScene) -> Option<Bone> {
     println!("Root node name: {}", scene.root_node().name());
     println!("All node names: {:?}", map_nodes(|x|x.name(), &scene.root_node()));
 
     let elems = build_scene_elements(&scene.root_node());
     println!("All scene elems: {:?}", elems.iter().map(|x|x.name.to_string()).collect::<Vec<_>>());
+
+    for elem in elems {
+        println!("name: {}", elem.name);
+
+        for (i, trans) in elem.transformations.iter().enumerate() {
+            println!("{}: {}", i, format_mat(&**trans));
+        }
+
+        println!("");
+    }
 
     None
 }
