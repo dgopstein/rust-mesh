@@ -74,7 +74,12 @@ pub fn open_window() {
 
     let mut last_uniform: Mat4<f32> = na::Eye::new_identity(4);
 
+    let mut counter = 0;
+
     for event in display.wait_events() {
+        counter += 1;
+        println!("counter: {}", counter);
+
         let mut window_state = last_window_state.clone();
 
         let (size, scale) =
@@ -84,23 +89,29 @@ pub fn open_window() {
                  win.hidpi_factor())
             }).unwrap_or(((1337, 1337), 1.0));
 
+
+
         match event {
             Event::Closed => {
                 println!("Closing: {:?}", event);
                 break;
             }
             Event::MouseMoved((x, y)) => {
-                // println!("Mouse: ({}, {})", x, y);
-                // println!("window ize: {:?}", size);
                 let scaled_x = ((x as f32) / scale).round() as i32;
                 let scaled_y = ((y as f32) / scale).round() as i32;
 
                 let scaled_mouse = scale_mouse_position(size, (scaled_x, scaled_y));
-                // println!("scaled_mouse: {:?}", scaled_mouse);
+
                 window_state.scaled_mouse_position = scaled_mouse;
             }
-            Event::MouseWheel(x, y) => {
-                window_state.mouse_wheel_scroll = (x / size.0 as f64, -y / size.1 as f64);
+            // Event::MouseWheel(x, y) => {
+            Event::MouseWheel(msd) => {
+                let (x, y) = match msd {
+                    glium::glutin::MouseScrollDelta::LineDelta(x, y) => (x, y),
+                    glium::glutin::MouseScrollDelta::PixelDelta(x, y) => (x, y)
+                };
+
+                window_state.mouse_wheel_scroll = (x / size.0 as f32, -y / size.1 as f32);
                 },
             Event::MouseInput(action, button) => {
                 match (action, button) {
@@ -124,29 +135,24 @@ pub fn open_window() {
                         Default::default()
                     };
 
-        // target.draw(&vertex_buffer, &indices, &program,
-                    // &uniforms, &params).unwrap();
-
         let trans_iso = Iso3::new_with_rotmat(
                     Vec3::new(0.0, 0.0, -0.0), Rot3::new(Vec3::new(0.0, 0.0, 0.0)));
         let mat2: Mat4<f32> = new_uniform * na::to_homogeneous(&trans_iso);
         let uniforms2 = uniform! { matrix: *mat2.as_array() };
 
         let transform = Iso3::new(Vec3::new(-0.5, 0.0, 0.0), Vec3::zero());
-        // let scene_elem =
-        //     SceneElement {
-        //         name: "icosphere".to_string(),
-        //         mesh: Box::new(icosphere::icosphere(0.1)),
-        //         transformations: vec![Box::new(transform)]
-        //     };
 
         let mesh = icosphere::icosphere(0.1);
-
         let vertex_buffer = glium::VertexBuffer::new(&display, mesh.faces());
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-        target.draw(&vertex_buffer, &indices, &program,
-                    &uniforms2, &params).unwrap();
+        let draw_res = target.draw(&vertex_buffer, &indices, &program,
+                    &uniforms2, &params);
+
+        match draw_res {
+            Ok(unit) => { println!("Ok({:?})", unit) }
+            Err(err) => { println!("Err({:?})", err) }
+        }
 
         target.finish();
 
@@ -159,7 +165,7 @@ pub fn open_window() {
 struct WindowState {
     scaled_mouse_position: ScaledMousePosition,
     is_left_drag: bool,
-    mouse_wheel_scroll: (f64, f64)
+    mouse_wheel_scroll: (f32, f32)
 }
 
 fn scale_mouse_position((wi, hi): (u32, u32), (xi, yi): (i32, i32)) -> ScaledMousePosition {

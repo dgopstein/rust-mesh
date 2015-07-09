@@ -11,6 +11,12 @@ gl_common = "*"
 nalgebra  = "*"
 num       = "*"
 
+# [dependencies.glium]
+# path = "/Users/dgopstein/glium"
+#
+# [dependencies.glutin]
+# path = "/Users/dgopstein/glutin"
+
 [dependencies.assimp]
 path = "/Users/dgopstein/assimp_rs"
 #version = "0.1.4"
