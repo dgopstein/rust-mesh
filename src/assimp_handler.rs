@@ -82,6 +82,7 @@ pub fn parse_scene(scene: &aiScene) -> Option<Bone> {
     println!("All node names: {:?}", map_nodes(|x|x.name(), &scene.root_node()));
 
     let elems = build_scene_elements(&scene.root_node());
+    // let elems: Vec<SceneElement> = Vec::new();
     println!("All scene elems: {:?}", elems.iter().map(|x|x.name.to_string()).collect::<Vec<_>>());
 
     for elem in elems {
